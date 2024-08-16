@@ -84,10 +84,14 @@ export class ServerService {
     }
     return throwError(() => new Error(`An error occurred :(. Error message: ${error.error.message} , Status code: ${error.status}, Error path: ${error.url}`));
   }
-  
+
   installSoftwareOnServer(serverId: string, softwareList: string[]): Observable<any> {
     const payload = { software: softwareList };
     return this.http.post(`${this.apiUrl}/${serverId}/install-software`, payload);
   }
+  /*
+  public searchServer(keyword : string) : Observable<Array<Server>> {
+    return this.http.get<Array<Server>>(this.apiUrl+"/servers/search?keyword="+keyword);
+  }*/
 }
 

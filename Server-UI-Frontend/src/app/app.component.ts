@@ -2,12 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { ServerService } from './service/server.service';
 import { AppState } from './interface/app-state';
 import { CustomResponse } from './interface/custom-response';
-import { BehaviorSubject, Observable, catchError, map, of, startWith, timestamp } from 'rxjs';
+import {BehaviorSubject, Observable, catchError, map, of, startWith, timestamp, throwError} from 'rxjs';
 import { DataState } from './enum/data-state.enum';
 import { Status } from './enum/status.enum';
 import { NgForm } from '@angular/forms';
 import { Server } from './interface/server';
 import { NotificationService } from './service/notification.service';
+//import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 
 @Component({
   selector: 'app-root',
@@ -16,6 +17,10 @@ import { NotificationService } from './service/notification.service';
 })
 
 export class AppComponent implements OnInit {
+  /*servers: Server[] = [];
+  searchTerm: string = ''; // Added search term property
+  filterText: string = '';
+  searchFormGroup! : FormGroup;*/
 
   server: any; // Declare the server property
   isLoadingInstall$ = new BehaviorSubject<boolean>(false);
@@ -181,6 +186,37 @@ updateServerStatus(serverId: string): void {
   // Implement your update logic here
 }
 
+  /* Filter providers based on search term
+  filteredServers(): Server[] {
+    if (!this.searchTerm) {
+      return this.servers;
+    }
+    return this.servers.filter(server =>
+      server.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      server.id.toString().includes(this.searchTerm.toLowerCase()) ||
+    server.ipAddr.includes(this.filterText) ||
+    server.status.toLowerCase().includes(this.filterText.toLowerCase())
+    );
+  }
+  /
+  handleSearchServer() {
+    let kw = this.searchFormGroup.value.keyword;
+    this.servers$=this.serverService.searchServer(kw).pipe(
+      catchError(err => {
+        this.errorMessage=err.message();
+        return throwError(err);
+      })
+    );
+  }
 
+/
+  get filteredServers(): Server[] {
+    return this.servers.filter(server =>
+      server.name.toLowerCase().includes(this.filterText.toLowerCase()) ||
+      server.ipAddr.includes(this.filterText) ||
+      server.status.toLowerCase().includes(this.filterText.toLowerCase())
+    );
+  }
+}*/
   // Mock service call for installation (this should be implemented in your server service)
 }
