@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  database:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: server_management_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306" # Corrected port mapping for MySQL
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -prootpassword || exit 1"]
+      interval: 10s
+      retries: 10
+    networks:
+      - mynetwork
+
+  backend:
+    build:
+      context: ../Server-API-Backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      MYSQL_HOST: database
+      MYSQL_DBNAME: server_management_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  frontend:
+    build:
+      context: ../Server-UI-Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - mynetwork
+
+
+volumes:
+  mysql_data:
+
+networks:
+  mynetwork:
