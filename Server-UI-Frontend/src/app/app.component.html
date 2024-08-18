@@ -21,17 +21,6 @@
                 <option value="SERVER_DOWN">SERVER DOWN</option>
               </select>
             </span>
-            <!--
-            <a
-              href="#addEmployeeModal"
-              class="btn btn-success"
-              data-toggle="modal"
-              style="margin-left: 15px; align-items: center; display: inline-flex"
-            >
-              <i class="material-icons">&#xE147;</i>
-              <span style="margin-left:5px ;">New Server</span>
-            </a>-->
-
             <button
               (click)="printReport()"
               type="button"
@@ -54,31 +43,29 @@
           </div>
         </ng-container>
         <ng-container *ngSwitchCase="DataState.LOADED_STATE">
-          <!-- Serach Section-->
+          <!-- Search Section-->
           <div
             class="card"
             style="background: gainsboro;"
           >
             <div class="card-header" style="background: lightblue">
-              List Servers
+              List Servers :
             </div>
             <div class="card-body d-flex">
-              <form>
-                <div class="input-group">
-                  <label class="input-group-text">Search Server :</label>
-                  <input type="text" class="form-control"/>
-                  <button class="btn btn-info mx-3" >
-                    <i class="bi bi-search"></i>
-                    Search
-                  </button>
-                </div>
-              </form>
+              <div class="input-group w-auto">
+                <label class="input-group-text">Search Server :</label>
+                <input type="text" [(ngModel)]="filterText" class="form-control"/>
+                <button class="btn btn-info mx-3" (click)="searchServers()" >
+                  <i class="fa fa-search"></i>
+                  Search
+                </button>
+              </div>
               <a
                 href="#addEmployeeModal"
                 class="btn btn-success"
                 data-toggle="modal"
                 style="
-                  margin-left: 460px;
+                  margin-left: 450px;
                   align-items: end;
                   display: inline-flex;
                 "
@@ -87,8 +74,8 @@
                 <span style="margin-left: 5px">New Server</span>
               </a>
             </div>
-            <table class="table table-striped table-hover" id="servers">
-            <thead>
+            <table class="table table-striped table-hover m-0" id="servers">
+              <thead>
               <tr>
                 <th>Image</th>
                 <th>IP Address</th>
@@ -100,13 +87,12 @@
                 <th>Install</th>
                 <th>Actions</th>
               </tr>
-            </thead>
-            <tbody
-              *ngFor="
+              </thead>
+              <tbody
+                *ngFor="
                 let server of appState.appData!.data.servers;
                 let i = index
-              "
-            >
+              ">
               <!-- TODO - fix this. "!" is not safe  -->
               <tr>
                 <td>
@@ -149,7 +135,7 @@
                       "
                       class="material-icons"
                       title="Ping server"
-                      >&#xe328;</i
+                    >&#xe328;</i
                     >
                     <i
                       *ngIf="(filterStatus$ | async) === server.ipAddr"
@@ -174,23 +160,46 @@
                   </a>
                 </td>
                 <td>
-                  <a
-                    (click)="deleteServer(server)"
-                    class="delete"
-                    data-toggle="modal"
-                    style="cursor: pointer; color: rgb(189, 33, 33);"
-                  >
-                    <i
-                      class="material-icons"
-                      data-toggle="tooltip"
-                      title="Delete"
-                      >&#xE872;</i
-                    >
-                  </a>
+                  <button (click)="setServerToDelete(server)" class="btn btn-outline-danger">
+                    <i class="fa fa-trash" title="Delete"></i>
+                  </button>
                 </td>
+                <!-- Confirmation Modal -->
+                <div *ngIf="showConfirmation" class="confirmation-dialog">
+                  <style>
+                    .confirmation-dialog {
+                      position: fixed;
+                      top: 0;
+                      left: 0;
+                      width: 100%;
+                      height: 100%;
+                      background-color: rgb(159 148 148 / 20%);
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                    }
+
+                    .confirmation-content {
+                      background-color: #fff;
+                      padding: 20px;
+                      border-radius: 8px;
+                      text-align: center;
+                    }
+
+                  </style>
+                  <div class="confirmation-content">
+                    <h3>Are you sure you want to delete this server?</h3>
+                    <p>{{serverToDelete?.name}} ({{serverToDelete?.ipAddr}})</p>
+                    <button (click)="confirmDelete()" class="btn btn-outline-danger">Yes, Delete</button>
+                    <button (click)="cancelDelete()" class="btn btn-outline-success mx-2">Cancel</button>
+                  </div>
+                </div>
+
               </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+
+
           </div>
         </ng-container>
         <ng-container *ngSwitchCase="DataState.ERROR_STATE">
@@ -203,13 +212,35 @@
   </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div class="modal" tabindex="-1" role="dialog" *ngIf="showConfirmation">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Server</h5>
+        <button type="button" class="close" (click)="cancelDelete()">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the server {{ serverToDelete?.name }}?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()">Yes, Delete</button>
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- Add server Modal HTML (POPUP) -->
 <div id="addEmployeeModal" class="modal fade">
   <div class="modal-dialog">
     <div class="modal-content">
       <form #serverForm="ngForm" (ngSubmit)="saveServer(serverForm)">
         <div class="modal-header">
-          <h4 class="modal-title">Add Server</h4>
+          <h4 class="modal-title text-center">Add Server</h4>
           <button
             type="button"
             class="close"
@@ -280,10 +311,10 @@
             </select>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="text-align: center;display: block">
           <button
             type="button"
-            class="btn btn-warning"
+            class="btn btn-outline-danger"
             id="closeModal"
             data-dismiss="modal"
           >
@@ -310,7 +341,7 @@
     <div class="modal-content">
       <form #installForm="ngForm" (ngSubmit)="installSoftware(installForm)">
         <div class="modal-header">
-          <h4 class="modal-title">Install Software</h4>
+          <h4 class="modal-title text-center">Install Software</h4>
           <button
             type="button"
             class="close"
@@ -357,10 +388,10 @@
             </select>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="text-align: center;display: block">
           <button
             type="button"
-            class="btn btn-warning"
+            class="btn btn-outline-danger"
             data-dismiss="modal"
           >
             Cancel
@@ -368,7 +399,7 @@
           <button
             type="submit"
             [disabled]="installForm.invalid || (isLoadingInstall$ | async)"
-            class="btn btn-success"
+            class="btn btn-outline-success"
           >
             <i *ngIf="isLoadingInstall$ | async" class="fas fa-spinner fa-spin"></i>
             <span *ngIf="isLoadingInstall$ | async">Installing...</span>

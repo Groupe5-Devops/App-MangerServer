@@ -2,41 +2,46 @@ import { Component, OnInit } from '@angular/core';
 import { ServerService } from './service/server.service';
 import { AppState } from './interface/app-state';
 import { CustomResponse } from './interface/custom-response';
-import {BehaviorSubject, Observable, catchError, map, of, startWith, timestamp, throwError} from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, startWith } from 'rxjs';
 import { DataState } from './enum/data-state.enum';
 import { Status } from './enum/status.enum';
 import { NgForm } from '@angular/forms';
 import { Server } from './interface/server';
 import { NotificationService } from './service/notification.service';
-//import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-
 export class AppComponent implements OnInit {
-  /*servers: Server[] = [];
-  searchTerm: string = ''; // Added search term property
+  servers: Server[] = [];
   filterText: string = '';
-  searchFormGroup! : FormGroup;*/
+  showConfirmation: boolean = false;
+  serverToDelete?: Server;
+  filteredServers: Server[] = [];  // This will hold the filtered results
 
-  server: any; // Declare the server property
+  server: any;
   isLoadingInstall$ = new BehaviorSubject<boolean>(false);
-  appState$: Observable<AppState<CustomResponse>>  = of({ dataState: DataState.LOADING_STATE }); // This is going to be the initial state of the app "of" let us create an observable from a value.
+  appState$: Observable<AppState<CustomResponse>>  = of({ dataState: DataState.LOADING_STATE });
 
-  readonly DataState = DataState; // This is to be able to use the enum in the html, we wont use this in this ts file
-  readonly Status = Status; // This is to be able to use the enum in the html, we wont use this in this ts file
+  readonly DataState = DataState;
+  readonly Status = Status;
 
-  private filterSubject = new BehaviorSubject<string>(''); // This is going to be the initial value of the filter
-  private dataSubject = new BehaviorSubject<CustomResponse>({ timeStamp: new Date(), statusCode: 0, status: '', reason: '', message: '', developerMessage: '', data: { servers: [] } });
-  filterStatus$ = this.filterSubject.asObservable(); // This is going to be the observable that we are going to use in the html
+  private filterSubject = new BehaviorSubject<string>('');
+  private dataSubject = new BehaviorSubject<CustomResponse>({
+    timeStamp: new Date(),
+    statusCode: 0,
+    status: '',
+    reason: '',
+    message: '',
+    developerMessage: '',
+    data: { servers: [] }
+  });
+  filterStatus$ = this.filterSubject.asObservable();
 
   private isLoading = new BehaviorSubject<boolean>(false);
-  isLoading$ = this.isLoading.asObservable(); // This is going to be the observable that we are going to use in the html
-
-  // private readonly notifier = NotifierService;
+  isLoading$ = this.isLoading.asObservable();
 
   constructor(private serverService: ServerService, private notifier: NotificationService) {}
 
@@ -46,9 +51,12 @@ export class AppComponent implements OnInit {
         map(response => {
           this.notifier.onInfo(response.message);
           this.dataSubject.next(response);
-          return { dataState: DataState.LOADED_STATE, appData: { ...response, data: { servers: response.data.servers?.reverse () } } }
+          return {
+            dataState: DataState.LOADED_STATE,
+            appData: { ...response, data: { servers: response.data.servers?.reverse() } }
+          };
         }),
-        startWith({ dataState: DataState.LOADING_STATE }), // This is going to be the initial state of the app
+        startWith({ dataState: DataState.LOADING_STATE }),
         catchError((error: string) => {
           this.notifier.onError(error);
           return of({ dataState: DataState.ERROR_STATE, error: error });
@@ -61,7 +69,7 @@ export class AppComponent implements OnInit {
     this.appState$ = this.serverService.ping$(ipAddr)
       .pipe(
         map(response => {
-          this.notifier.onDefault("Pinging server...");  // TODO: Handle the delay of the pinging server message
+          this.notifier.onDefault("Pinging server...");
           const index = this.dataSubject.value.data.servers!.findIndex(server => server.id === response.data.server!.id);
           this.dataSubject.value.data.servers![index] = response.data.server!;
           if (response.data.server!.status === Status.SERVER_UP) {
@@ -69,12 +77,12 @@ export class AppComponent implements OnInit {
           } else {
             this.notifier.onError(response.message);
           }
-          this.filterSubject.next(''); // This is to reset the filter
-          return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }
+          this.filterSubject.next('');
+          return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value };
         }),
-        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value}), // This is going to be the initial state of the app
+        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
         catchError((error: string) => {
-          this.filterSubject.next(''); // This is to reset the filter
+          this.filterSubject.next('');
           this.notifier.onError(error);
           return of({ dataState: DataState.ERROR_STATE, error: error });
         })
@@ -83,21 +91,22 @@ export class AppComponent implements OnInit {
 
   saveServer(serverForm: NgForm): void {
     this.isLoading.next(true);
-    this.appState$ = this.serverService.save$(<Server>serverForm.value) // <Server> is to cast the value to Server. But bot (serverForm.value) and (serverForm.value as Server) are ok
+    this.appState$ = this.serverService.save$(<Server>serverForm.value)
       .pipe(
         map(response => {
-          this.dataSubject.next(
-            {...response, data: {servers: [response.data.server!, ...this.dataSubject.value.data.servers!]}} // TODO: Handle the exclamaition marks in a better way
-          );
+          this.dataSubject.next({
+            ...response,
+            data: { servers: [response.data.server!, ...this.dataSubject.value.data.servers!] }
+          });
           this.notifier.onSuccess(response.message);
           document.getElementById('closeModal')?.click();
-          serverForm.resetForm({status: this.Status.SERVER_DOWN});
-          this.isLoading.next(false); // We want to stop the spinner
-          return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }
+          serverForm.resetForm({ status: this.Status.SERVER_DOWN });
+          this.isLoading.next(false);
+          return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value };
         }),
-        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }), // This is going to be the initial state of the app
+        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
         catchError((error: string) => {
-          this.isLoading.next(false); // We want to stop the spinner
+          this.isLoading.next(false);
           this.notifier.onError(error);
           return of({ dataState: DataState.ERROR_STATE, error: error });
         })
@@ -109,9 +118,9 @@ export class AppComponent implements OnInit {
       .pipe(
         map(response => {
           this.notifier.onDefault(response.message);
-          return { dataState: DataState.LOADED_STATE, appData: response }
+          return { dataState: DataState.LOADED_STATE, appData: response };
         }),
-        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }), // This is going to be the initial state of the app
+        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
         catchError((error: string) => {
           this.notifier.onError(error);
           return of({ dataState: DataState.ERROR_STATE, error: error });
@@ -119,18 +128,35 @@ export class AppComponent implements OnInit {
       );
   }
 
+  setServerToDelete(server: Server): void {
+    this.serverToDelete = server;
+    this.showConfirmation = true;
+  }
+
+  confirmDelete(): void {
+    if (this.serverToDelete) {
+      this.deleteServer(this.serverToDelete);
+      this.showConfirmation = false;
+    }
+  }
+
+  cancelDelete(): void {
+    this.showConfirmation = false;
+    this.serverToDelete = undefined;
+  }
+
   deleteServer(server: Server): void {
     this.appState$ = this.serverService.delete$(server.id)
       .pipe(
         map(response => {
-          this.dataSubject.next(
-            {...response, data:
-              {servers: this.dataSubject.value.data.servers!.filter(s => s.id !== server.id)}} // TODO: Handle the exclamaition marks in a better way
-            );
+          this.dataSubject.next({
+            ...response,
+            data: { servers: this.dataSubject.value.data.servers!.filter(s => s.id !== server.id) }
+          });
           this.notifier.onSuccess(response.message);
-          return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }
+          return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value };
         }),
-        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }), // This is going to be the initial state of the app
+        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
         catchError((error: string) => {
           this.notifier.onError(error);
           return of({ dataState: DataState.ERROR_STATE, error: error });
@@ -140,13 +166,9 @@ export class AppComponent implements OnInit {
 
   printReport(): void {
     this.notifier.onDefault('Printing report...');
-    /// for printing ( also works for pdf download, save as pdf option in the print dialog )
-    // window.print();
-
-    /// for xls download
     let dataType = 'application/vnd.ms-excel.sheet.macroEnabled.12';
     let tableSelect = document.getElementById('servers');
-    let tableHTML = tableSelect!.outerHTML.replace(/ /g, '%20'); // Replace all white spaces with %20 // TODO: Handle the exclamaition marks in a better way
+    let tableHTML = tableSelect!.outerHTML.replace(/ /g, '%20');
     let downloadLink = document.createElement('a');
     document.body.appendChild(downloadLink);
     downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
@@ -156,67 +178,46 @@ export class AppComponent implements OnInit {
     this.notifier.onSuccess('Report printed');
   }
 
-setSelectedServer(server: any): void {
-  this.server = server;
-}
+  setSelectedServer(server: any): void {
+    this.server = server;
+  }
 
-installSoftware(form: NgForm): void {
-  if (form.invalid) return;
+  installSoftware(form: NgForm): void {
+    if (form.invalid) return;
 
-  this.isLoadingInstall$.next(true);
-  const selectedSoftware = form.value.software;
+    this.isLoadingInstall$.next(true);
+    const selectedSoftware = form.value.software;
 
-  this.serverService.installSoftwareOnServer(this.server.id, selectedSoftware).subscribe(
-    () => {
-      console.log(`Software installed on server: ${this.server.name}`);
-      this.updateServerStatus(this.server.id);
-      this.isLoadingInstall$.next(false);
-      // Close the modal
-      document.getElementById('closeModal')?.click();
-    },
-    (error) => {
-      console.error(`Failed to install software on server: ${this.server.name}`, error);
-      this.isLoadingInstall$.next(false);
+    this.serverService.installSoftwareOnServer(this.server.id, selectedSoftware).subscribe(
+      () => {
+        console.log(`Software installed on server: ${this.server.name}`);
+        this.updateServerStatus(this.server.id);
+        this.isLoadingInstall$.next(false);
+        document.getElementById('closeModal')?.click();
+      },
+      (error) => {
+        console.error(`Failed to install software on server: ${this.server.name}`, error);
+        this.isLoadingInstall$.next(false);
+      }
+    );
+  }
+
+  updateServerStatus(serverId: string): void {
+    console.log(`Server status updated for server ID: ${serverId}`);
+  }
+  /*  Serach keyword code */
+  searchServers(): void {
+    if (this.filterText.trim() === '') {
+      this.filteredServers = this.servers;  // If search text is empty, show all servers
+    } else {
+      this.filteredServers = this.servers.filter(server =>
+        server.name.toLowerCase().includes(this.filterText.toLowerCase()) ||
+        server.ipAddr.includes(this.filterText) ||
+        server.type.toLowerCase().includes(this.filterText.toLowerCase()) ||
+        server.status.toLowerCase().includes(this.filterText.toLowerCase())
+      );
+      console.log(this.filteredServers);
     }
-  );
-}
-
-updateServerStatus(serverId: string): void {
-  console.log(`Server status updated for server ID: ${serverId}`);
-  // Implement your update logic here
-}
-
-  /* Filter providers based on search term
-  filteredServers(): Server[] {
-    if (!this.searchTerm) {
-      return this.servers;
-    }
-    return this.servers.filter(server =>
-      server.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-      server.id.toString().includes(this.searchTerm.toLowerCase()) ||
-    server.ipAddr.includes(this.filterText) ||
-    server.status.toLowerCase().includes(this.filterText.toLowerCase())
-    );
+    console.log(this.filterText);
   }
-  /
-  handleSearchServer() {
-    let kw = this.searchFormGroup.value.keyword;
-    this.servers$=this.serverService.searchServer(kw).pipe(
-      catchError(err => {
-        this.errorMessage=err.message();
-        return throwError(err);
-      })
-    );
-  }
-
-/
-  get filteredServers(): Server[] {
-    return this.servers.filter(server =>
-      server.name.toLowerCase().includes(this.filterText.toLowerCase()) ||
-      server.ipAddr.includes(this.filterText) ||
-      server.status.toLowerCase().includes(this.filterText.toLowerCase())
-    );
-  }
-}*/
-  // Mock service call for installation (this should be implemented in your server service)
 }
