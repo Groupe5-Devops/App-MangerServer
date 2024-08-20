@@ -3,7 +3,7 @@
   <div class="table-responsive">
     <div class="table-wrapper">
       <div class="table-title">
-        <div class="row" style="display: flex; align-items: center; color: white;flex-direction: row; justify-content: space-between; margin-top: -30px;">
+        <div class="row" style="display: flex; align-items: center; color: white;flex-direction: row; justify-content: space-between; ">
           <div class="col-sm-6">
             <img src="/assets/Logo_new.png" class="img-fluid w-25" alt="Logo_App-Server">
             <style>
@@ -22,20 +22,6 @@
             </style>
           </div>
           <div class="col-sm-6" style="text-align: right; white-space: nowrap">
-            <!--<span style="margin-left: 10px">
-              <select
-                (ngModelChange)="filterServers($event)"
-                ngModel="ALL"
-                name="status"
-                ngModel="ALL"
-                class="btn btn-light text-light"
-                style="background: #638c1c"
-              >
-                <option value="ALL">ALL Servers</option>
-                <option value="SERVER_UP">SERVER UP</option>
-                <option value="SERVER_DOWN">SERVER DOWN</option>
-              </select>
-            </span>-->
             <button
               (click)="printReport()"
               type="button"
