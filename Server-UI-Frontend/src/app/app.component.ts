@@ -15,11 +15,11 @@ import { NotificationService } from './service/notification.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  servers: Server[] = [];
+  servers: Server[] | undefined = [];
   filterText: string = '';
   showConfirmation: boolean = false;
   serverToDelete?: Server;
-  filteredServers: Server[] = [];  // This will hold the filtered results
+  filteredServers: Server[] | undefined = [];  // This will hold the filtered results
 
   server: any;
   isLoadingInstall$ = new BehaviorSubject<boolean>(false);
@@ -46,11 +46,17 @@ export class AppComponent implements OnInit {
   constructor(private serverService: ServerService, private notifier: NotificationService) {}
 
   ngOnInit(): void {
+    this.loadServers();
+  }
+/*  Load Server Function */
+  loadServers(): void {
     this.appState$ = this.serverService.servers$
       .pipe(
         map(response => {
           this.notifier.onInfo(response.message);
           this.dataSubject.next(response);
+          this.servers = response?.data.servers?.reverse();
+          this.filteredServers = this.servers;
           return {
             dataState: DataState.LOADED_STATE,
             appData: { ...response, data: { servers: response.data.servers?.reverse() } }
@@ -63,7 +69,7 @@ export class AppComponent implements OnInit {
         })
       );
   }
-
+/*  Ping Server Function */
   pingServer(ipAddr: string): void {
     this.filterSubject.next(ipAddr);
     this.appState$ = this.serverService.ping$(ipAddr)
@@ -78,6 +84,7 @@ export class AppComponent implements OnInit {
             this.notifier.onError(response.message);
           }
           this.filterSubject.next('');
+          this.filteredServers = this.dataSubject.value.data.servers; // Update the filteredServers
           return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value };
         }),
         startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
@@ -88,7 +95,7 @@ export class AppComponent implements OnInit {
         })
       );
   }
-
+/*  Save Server Function */
   saveServer(serverForm: NgForm): void {
     this.isLoading.next(true);
     this.appState$ = this.serverService.save$(<Server>serverForm.value)
@@ -99,6 +106,7 @@ export class AppComponent implements OnInit {
             data: { servers: [response.data.server!, ...this.dataSubject.value.data.servers!] }
           });
           this.notifier.onSuccess(response.message);
+          this.filteredServers = this.dataSubject.value.data.servers; // Update the filteredServers
           document.getElementById('closeModal')?.click();
           serverForm.resetForm({ status: this.Status.SERVER_DOWN });
           this.isLoading.next(false);
@@ -113,38 +121,24 @@ export class AppComponent implements OnInit {
       );
   }
 
-  filterServers(status: Status): void {
-    this.appState$ = this.serverService.filter$(status, this.dataSubject.value)
-      .pipe(
-        map(response => {
-          this.notifier.onDefault(response.message);
-          return { dataState: DataState.LOADED_STATE, appData: response };
-        }),
-        startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
-        catchError((error: string) => {
-          this.notifier.onError(error);
-          return of({ dataState: DataState.ERROR_STATE, error: error });
-        })
-      );
-  }
-
   setServerToDelete(server: Server): void {
     this.serverToDelete = server;
     this.showConfirmation = true;
+    this.loadServers();
   }
-
+/*  Confirm Delete Function */
   confirmDelete(): void {
     if (this.serverToDelete) {
       this.deleteServer(this.serverToDelete);
       this.showConfirmation = false;
     }
   }
-
+/*  Cancel Delete Function */
   cancelDelete(): void {
     this.showConfirmation = false;
     this.serverToDelete = undefined;
   }
-
+/*  Delete Server Function */
   deleteServer(server: Server): void {
     this.appState$ = this.serverService.delete$(server.id)
       .pipe(
@@ -154,6 +148,7 @@ export class AppComponent implements OnInit {
             data: { servers: this.dataSubject.value.data.servers!.filter(s => s.id !== server.id) }
           });
           this.notifier.onSuccess(response.message);
+          this.filteredServers = this.dataSubject.value.data.servers; // Update the filteredServers
           return { dataState: DataState.LOADED_STATE, appData: this.dataSubject.value };
         }),
         startWith({ dataState: DataState.LOADED_STATE, appData: this.dataSubject.value }),
@@ -163,25 +158,58 @@ export class AppComponent implements OnInit {
         })
       );
   }
+/*  Print table & export it to xls file*/
 
   printReport(): void {
     this.notifier.onDefault('Printing report...');
-    let dataType = 'application/vnd.ms-excel.sheet.macroEnabled.12';
+
     let tableSelect = document.getElementById('servers');
-    let tableHTML = tableSelect!.outerHTML.replace(/ /g, '%20');
+    if (!tableSelect) {
+      this.notifier.onError('Table not found!');
+      return;
+    }
+
+    // Clone the table to manipulate for export
+    let clonedTable = tableSelect.cloneNode(true) as HTMLElement;
+
+    // Style the cloned table for Excel export (if needed)
+    let styles = `
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table, th, td {
+        border: 1px solid black;
+      }
+      th, td {
+        padding: 5px;
+        text-align: left;
+      }
+    </style>
+  `;
+
+    let tableHTML = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>
+    <body>${styles}${clonedTable.outerHTML}</body></html>`;
+
+    let dataType = 'application/vnd.ms-excel.sheet.macroEnabled.12';
+    let blob = new Blob([tableHTML], { type: dataType });
     let downloadLink = document.createElement('a');
-    document.body.appendChild(downloadLink);
-    downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
+
+    downloadLink.href = URL.createObjectURL(blob);
     downloadLink.download = 'server-report.xls';
     downloadLink.click();
-    document.body.removeChild(downloadLink);
+
     this.notifier.onSuccess('Report printed');
   }
 
+  /**/
   setSelectedServer(server: any): void {
     this.server = server;
   }
-
+/*  Function Install Software */
   installSoftware(form: NgForm): void {
     if (form.invalid) return;
 
@@ -201,23 +229,26 @@ export class AppComponent implements OnInit {
       }
     );
   }
-
+/*  Update Server Function */
   updateServerStatus(serverId: string): void {
     console.log(`Server status updated for server ID: ${serverId}`);
   }
-  /*  Serach keyword code */
+/*  Search Server Function */
   searchServers(): void {
+    this.filteredServers = this.servers;  // If search text is empty, show all servers
     if (this.filterText.trim() === '') {
-      this.filteredServers = this.servers;  // If search text is empty, show all servers
     } else {
+      console.log( "before filter : " + this.filteredServers);
+      // @ts-ignore
       this.filteredServers = this.servers.filter(server =>
         server.name.toLowerCase().includes(this.filterText.toLowerCase()) ||
         server.ipAddr.includes(this.filterText) ||
         server.type.toLowerCase().includes(this.filterText.toLowerCase()) ||
         server.status.toLowerCase().includes(this.filterText.toLowerCase())
       );
-      console.log(this.filteredServers);
+      console.log(" after filter " + this.filteredServers);
     }
     console.log(this.filterText);
   }
 }
+

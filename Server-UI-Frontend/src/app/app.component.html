@@ -3,36 +3,50 @@
   <div class="table-responsive">
     <div class="table-wrapper">
       <div class="table-title">
-        <div class="row" style="display: flex; align-items: center; color: white; padding: 15px; margin-bottom: 10px; flex-direction: row; justify-content: space-between; ">
-          <div class="col-sm-6" style="min-width: 200px;">
-            <h2>Server-Pilot</h2>
+        <div class="row" style="display: flex; align-items: center; color: white;flex-direction: row; justify-content: space-between; margin-top: -30px;">
+          <div class="col-sm-6">
+            <img src="/assets/Logo_new.png" class="img-fluid w-25" alt="Logo_App-Server">
+            <style>
+              /*@media (max-width: 768px) {
+                img {
+                  max-height: 5vh;
+                }
+              }*/
+              /* Pour les très petits écrans */
+              @media (max-width: 480px) {
+                img {
+                  /*max-height: 2vh;*/
+                  margin-bottom: -60px;
+                }
+              }
+            </style>
           </div>
           <div class="col-sm-6" style="text-align: right; white-space: nowrap">
-            <span style="margin-left: 10px">
+            <!--<span style="margin-left: 10px">
               <select
                 (ngModelChange)="filterServers($event)"
                 ngModel="ALL"
                 name="status"
                 ngModel="ALL"
-                class="btn btn-info"
+                class="btn btn-light text-light"
+                style="background: #638c1c"
               >
                 <option value="ALL">ALL Servers</option>
                 <option value="SERVER_UP">SERVER UP</option>
                 <option value="SERVER_DOWN">SERVER DOWN</option>
               </select>
-            </span>
+            </span>-->
             <button
               (click)="printReport()"
               type="button"
-              class="btn btn-primary"
-              style="margin-left: 15px"
+              class="btn btn-light text-light"
+              style="margin-left: 15px;background: #5f249f;"
             >
-              Print Report
+              Print Report <i class="fa fa-download"></i>
             </button>
           </div>
         </div>
       </div>
-      <br />
       <ng-container
         *ngIf="appState$ | async as appState"
         [ngSwitch]="appState.dataState"
@@ -44,37 +58,29 @@
         </ng-container>
         <ng-container *ngSwitchCase="DataState.LOADED_STATE">
           <!-- Search Section-->
-          <div
-            class="card"
-            style="background: gainsboro;"
-          >
-            <div class="card-header" style="background: lightblue">
+          <div class="card">
+            <div class="card-header">
               List Servers :
             </div>
             <div class="card-body d-flex">
               <div class="input-group w-auto">
                 <label class="input-group-text">Search Server :</label>
                 <input type="text" [(ngModel)]="filterText" class="form-control"/>
-                <button class="btn btn-info mx-3" (click)="searchServers()" >
+                <button class="btn btn-light mx-3 text-light" (click)="searchServers()">
                   <i class="fa fa-search"></i>
                   Search
                 </button>
               </div>
               <a
                 href="#addEmployeeModal"
-                class="btn btn-success"
+                class="btn btn-light text-light"
                 data-toggle="modal"
-                style="
-                  margin-left: 450px;
-                  align-items: end;
-                  display: inline-flex;
-                "
               >
                 <i class="material-icons">&#xE147;</i>
                 <span style="margin-left: 5px">New Server</span>
               </a>
             </div>
-            <table class="table table-striped table-hover m-0" id="servers">
+            <!--<table class="table table-striped table-hover m-0" id="servers">
               <thead>
               <tr>
                 <th>Image</th>
@@ -90,10 +96,10 @@
               </thead>
               <tbody
                 *ngFor="
-                let server of appState.appData!.data.servers;
+                let server of filteredServers;
                 let i = index
               ">
-              <!-- TODO - fix this. "!" is not safe  -->
+              <-- TODO - fix this. "!" is not safe  --
               <tr>
                 <td>
                   <img
@@ -101,6 +107,7 @@
                     [alt]="server.id"
                     width="40"
                     height="40"
+                    class="m-0"
                   />
                 </td>
                 <td>{{ server.ipAddr }}</td>
@@ -156,7 +163,7 @@
                       class="material-icons"
                       data-toggle="tooltip"
                       title="Install"
-                    >&#xe2c3;</i> <!-- Icon for system update or install -->
+                    >&#xe2c3;</i> !-- Icon for system update or install --
                   </a>
                 </td>
                 <td>
@@ -164,7 +171,7 @@
                     <i class="fa fa-trash" title="Delete"></i>
                   </button>
                 </td>
-                <!-- Confirmation Modal -->
+                !-- Confirmation Modal --
                 <div *ngIf="showConfirmation" class="confirmation-dialog">
                   <style>
                     .confirmation-dialog {
@@ -190,15 +197,77 @@
                   <div class="confirmation-content">
                     <h3>Are you sure you want to delete this server?</h3>
                     <p>{{serverToDelete?.name}} ({{serverToDelete?.ipAddr}})</p>
-                    <button (click)="confirmDelete()" class="btn btn-outline-danger">Yes, Delete</button>
-                    <button (click)="cancelDelete()" class="btn btn-outline-success mx-2">Cancel</button>
+                    <button (click)="confirmDelete()" class="btn btn-danger">Yes, Delete</button>
+                    <button (click)="cancelDelete()" class="btn btn-success mx-2">Cancel</button>
                   </div>
                 </div>
 
               </tr>
               </tbody>
+            </table>-->
+            <!-- Table Server Lists -->
+            <table class="table table-striped table-hover m-0" id="servers">
+              <thead>
+              <tr>
+                <th>Image</th>
+                <th>IP Address</th>
+                <th>Name</th>
+                <th>Memory</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Ping</th>
+                <th>Install</th>
+                <th>Actions</th>
+              </tr>
+              </thead>
+              <!-- Filter keyword to display data if it exist if not noServerFound -->
+              <tbody *ngIf="filteredServers && filteredServers.length > 0; else noServerFound">
+              <!-- Table to fetch data from DB -->
+              <tr *ngFor="let server of filteredServers; let i = index">
+                <td><img [src]="server.imageUrl" [alt]="server.id" width="40" height="40" class="m-0" /></td>
+                <td>{{ server.ipAddr }}</td>
+                <td>{{ server.name }}</td>
+                <td>{{ server.memory }}</td>
+                <td>{{ server.type }}</td>
+                <td>
+        <span class="badge badge-pill" [ngClass]="server.status === Status.SERVER_UP ? 'badge-success' : 'badge-danger'">
+          {{ server.status === Status.SERVER_UP ? "SERVER UP" : "SERVER DOWN" }}
+        </span>
+                </td>
+                <td>
+                  <a (click)="pingServer(server.ipAddr)" style="cursor: pointer; color: rgb(48, 76, 87);">
+                    <i *ngIf="(filterStatus$ | async) !== server.ipAddr" class="material-icons" title="Ping server">&#xe328;</i>
+                    <i *ngIf="(filterStatus$ | async) === server.ipAddr" class="fa fa-spinner fa-spin" style="font-size: 24px"></i>
+                  </a>
+                </td>
+                <td>
+                  <a (click)="setSelectedServer(server)" class="install" data-toggle="modal" data-target="#installSoftwareModal"
+                     style="cursor: pointer; color: rgb(33, 150, 243);">
+                    <i class="material-icons" data-toggle="tooltip" title="Install">&#xe2c3;</i>
+                  </a>
+                </td>
+                <td>
+                  <button (click)="setServerToDelete(server)" class="btn btn-outline-danger">
+                    <i class="fa fa-trash" title="Delete"></i>
+                  </button>
+                </td>
+                <!-- Confirmation Modal -->
+                <div *ngIf="showConfirmation" class="confirmation-dialog">
+                  <div class="confirmation-content">
+                    <h3>Are you sure you want to delete this server?</h3>
+                    <p>{{serverToDelete?.name}} ({{serverToDelete?.ipAddr}})</p>
+                    <button (click)="confirmDelete()" class="btn btn-danger">Yes, Delete</button>
+                    <button (click)="cancelDelete()" class="btn btn-success mx-2">Cancel</button>
+                  </div>
+                </div>
+              </tr>
+              </tbody>
+              <ng-template #noServerFound>
+                <tr>
+                  <td colspan="9" class="text-center bg-danger text-light">The server you searched for was not found.</td>
+                </tr>
+              </ng-template>
             </table>
-
 
           </div>
         </ng-container>
@@ -212,7 +281,7 @@
   </div>
 </div>
 
-<!-- Confirmation Modal -->
+<!-- Confirmation Modal Delete Btn-->
 <div class="modal" tabindex="-1" role="dialog" *ngIf="showConfirmation">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -234,7 +303,7 @@
 </div>
 
 
-<!-- Add server Modal HTML (POPUP) -->
+<!-- Add server Modal  -->
 <div id="addEmployeeModal" class="modal fade">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -311,10 +380,10 @@
             </select>
           </div>
         </div>
-        <div class="modal-footer" style="text-align: center;display: block">
+        <div class="modal-footer">
           <button
             type="button"
-            class="btn btn-outline-danger"
+            class="btn btn-danger"
             id="closeModal"
             data-dismiss="modal"
           >
@@ -335,7 +404,7 @@
   </div>
 </div>
 
-<!-- Install Software Modal HTML (POPUP) -->
+<!-- Install Software Modal -->
 <div id="installSoftwareModal" class="modal fade">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -388,10 +457,10 @@
             </select>
           </div>
         </div>
-        <div class="modal-footer" style="text-align: center;display: block">
+        <div class="modal-footer">
           <button
             type="button"
-            class="btn btn-outline-danger"
+            class="btn btn-danger"
             data-dismiss="modal"
           >
             Cancel
@@ -399,7 +468,7 @@
           <button
             type="submit"
             [disabled]="installForm.invalid || (isLoadingInstall$ | async)"
-            class="btn btn-outline-success"
+            class="btn btn-success"
           >
             <i *ngIf="isLoadingInstall$ | async" class="fas fa-spinner fa-spin"></i>
             <span *ngIf="isLoadingInstall$ | async">Installing...</span>
@@ -412,74 +481,16 @@
 </div>
 <notifier-container></notifier-container>
 <!-- Partners Seaction -->
-<style>
-  /*body {
-    /*height: 100vh;
-    background-color: #c9c9c9;
-    display: grid;
-    place-items: center;*
-    background: rgb(95,36,159);
-    background: linear-gradient(90deg, rgba(95,36,159,1) 35%, rgba(99,140,28,1) 100%);
-  }*/
-  section {
-    display: grid;
-    place-items: center;
-  }
-
-  h1 {
-    font-size: 3rem;
-    padding: 20px;
-    margin: 20px 0px;
-  }
-
-  .slider {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /*height: 100%;
-    width: 80%;*/
-    overflow: hidden;
-    background: #dfdfdf;
-    /*border-radius: 16px;*/
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(7.4px);
-    -webkit-backdrop-filter: blur(7.4px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-  }
-
-  .slider-items {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    animation: scrolling 20s linear infinite;
-  }
-
-  @keyframes scrolling {
-    0% {
-      transform: translateX(80%);
-    }
-
-    100% {
-      transform: translateX(-20%);
-    }
-  }
-
-  .slider-items img {
-    width: 12%;
-    margin: 20px;
-  }
-
-</style>
+<!-- Carousel slider Partners -->
 <section>
-  <h1>Our Partners</h1>
+  <h3 class="my-5">Our Partners</h3>
   <div class="slider">
     <div class="slider-items">
       <img src="../assets/DXC-Logo.webp" alt="DXC-logo" />
       <img src="../assets/jobintech.png" alt="JobinTech-logo" />
-      <img src="../assets/logo_ynov.png" alt="YNOV-logo" />
+      <img src="/assets/logo_ynov_black.png" alt="YNOV-logo" />
       <img src="../assets/jobintech.png" alt="JobinTech-logo" />
-      <img src="../assets/logo_ynov.png" alt="YNOV-logo" />
+      <img src="/assets/logo_ynov_black.png" alt="YNOV-logo" />
       <img src="../assets/DXC-Logo.webp" alt="DXC-logo" />
     </div>
   </div>
