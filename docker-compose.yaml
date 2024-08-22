@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  database:
+    image: mysql:8.0.30
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DBNAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      - mysql_data:/var/lib/mysql
+      - ./certs:/etc/mysql/certs
+
+    command:
+      - --require_secure_transport=ON
+      - --ssl-ca=/etc/mysql/certs/ca.crt
+      - --ssl-cert=/etc/mysql/certs/mysql.crt
+      - --ssl-key=/etc/mysql/certs/mysql.key
+      - --bind-address=0.0.0.0 
+    ports:
+      - "3307:3306" # Corrected port mapping for MySQL
+
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      retries: 10
+    networks:
+      - backend
+
+  cert-gen:
+    image: alpine
+    volumes:
+      - ./certs:/certs
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache openssl &&
+        openssl genpkey -algorithm RSA -out /certs/mysql.key -pkeyopt rsa_keygen_bits:2048 &&
+        openssl req -new -key /certs/mysql.key -out /certs/mysql.csr -subj "/CN=mysql/O=myorg/C=US" &&
+        openssl x509 -req -in /certs/mysql.csr -signkey /certs/mysql.key -out /certs/mysql.crt -days 365 &&
+        openssl genpkey -algorithm RSA -out /certs/ca.key -pkeyopt rsa_keygen_bits:2048 &&
+        openssl req -new -x509 -key /certs/ca.key -out /certs/ca.crt -days 1095 -subj "/CN=Certificate Authority/O=myorg/C=US" &&
+        chmod 600 /certs/* && chown 999:999 /certs/*
+    restart: "no"
+
+  backend: 
+    build: &build-back
+      context: ./Server-API-Backend
+      dockerfile: Dockerfile.back
+      tags:
+        - docker.io/skinnysyddocker/server-pilot-back:latest
+      cache_from:
+        - docker.io/skinnysyddocker/server-pilot-back:cache
+      # cache_to:
+      #   - docker.io/skinnysyddocker/server-pilot-back:cache
+
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_DBNAME: ${MYSQL_DBNAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+  # backend-release:
+  #   build:
+  #     <<: *build-back
+  #     x-bake:
+  #       platforms:
+  #         - linux/amd64
+
+  frontend:
+    build: &build-front
+      context: ./Server-UI-Frontend
+      dockerfile: Dockerfile.front
+      tags:
+        - docker.io/skinnysyddocker/server-pilot-front:latest
+      cache_from:
+        - docker.io/skinnysyddocker/server-pilot-front:cache
+      # cache_to:
+      #   - docker.io/skinnysyddocker/server-pilot-front:cache
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - frontend
+  # front-release:
+  #   build:
+  #     <<: *build-front
+  #     x-bake:
+  #       platforms:
+  #         - linux/amd64
+
+
+volumes:
+  mysql_data:
+
+networks:
+  frontend:
+  backend:
