@@ -66,6 +66,7 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<finalName>my-app</finalName>
 				</configuration>
 			</plugin>
 		</plugins>
