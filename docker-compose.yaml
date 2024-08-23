@@ -71,12 +71,12 @@ services:
     networks:
       - backend
       - frontend
-  # backend-release:
-  #   build:
-  #     <<: *build-back
-  #     x-bake:
-  #       platforms:
-  #         - linux/amd64
+  backend-release:
+    build:
+      <<: *build-back
+      x-bake:
+        platforms:
+          - linux/amd64
 
   frontend:
     build: &build-front
@@ -94,12 +94,12 @@ services:
       - backend
     networks:
       - frontend
-  # front-release:
-  #   build:
-  #     <<: *build-front
-  #     x-bake:
-  #       platforms:
-  #         - linux/amd64
+  front-release:
+    build:
+      <<: *build-front
+      x-bake:
+        platforms:
+          - linux/amd64
 
 
 volumes:
