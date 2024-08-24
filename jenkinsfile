@@ -1,0 +1,143 @@
+pipeline {
+    agent any
+    // environment {
+    //     VERSION="1.${BUILD_NUMBER}"
+    //     MYSQL_USER = credentials('mysql_user')
+    //     MYSQL_PASSWORD = credentials('mysql_password')
+    //     MYSQL_DBNAME = credentials('mysql_db')
+    //     MYSQL_HOST = credentials('mysql_host')
+    //     MYSQL_ROOT_PASSWORD = credentials('mysql_root_password')
+    //     SPRING_PROFILES_ACTIVE = credentials('spring_profiles_active')
+    // }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                script {
+             //        git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
+                     checkout scm
+                }
+            }
+        }
+        stage('output') {
+            steps {
+                script {
+                    echo "Cloning repository into workspace: ${WORKSPACE}" // to locate workspace
+                }
+            }
+        }
+        
+        
+        // stage('Login to Docker Hub') {
+        //     steps {
+        //         script {
+        //             withCredentials([string(credentialsId: 'dockerToken', variable: 'DOCKER_TOKEN')]) {
+        //                 sh 'echo "$DOCKER_TOKEN" | docker login --username skinnysyddocker --password-stdin'                    }
+        //         }               
+        //     }
+        // }
+        
+        // stage('Create Buildx Builder') {
+        //     steps {
+        //             // sh 'docker buildx create --use --driver cloud mybuilder'
+        //             // sh 'docker buildx create --use --driver docker localbuilder'
+        //             // sh 'docker buildx use cloud-skinnysyddocker-skinnysydbuilder'
+        //             sh 'echo docker buildx use default'
+        //     }
+        // }
+        
+        // stage('Static code analysis: SonarQube') {
+        //     steps { 
+        //         script {
+        //             dir('App-MangerServer/Server-API-Backend'){
+        //                 withCredentials([string(credentialsId: 'sonarAdmin', variable: 'SONAR_TOKEN')]) { 
+        //                     withMaven{
+        //                         sh 'mvn clean package sonar:sonar -Dsonar.host.url=http://localhost:9001/ -Dsonar.login=${SONAR_TOKEN}'
+        //                     } 
+        //                 }
+        //             }
+        //         }
+        //      }
+        // }
+        
+        // stage('Run Sonarqube') {
+        //     environment {
+        //         scannerHome = tool 'DefaultSonarQubeScanner';
+        //     }
+        //     steps {
+        //         dir('Server-API-Backend'){
+        //             withSonarQubeEnv(credentialsId: 'sonarAdmin', installationName: 'SonarQubeServer') {
+        //                 sh "${scannerHome}/bin/sonar-scanner"
+        //             }
+        //         }
+        //     }
+        // }
+        // stage('change tag') {
+        //     steps {
+        //         script {
+                   
+        //             // sh 'docker buildx build --platform linux/amd64,linux/arm64 --push --tag "$DOCKER_ORG/$IMAGE_NAME" .'
+        //         //   dir('/var/lib/jenkins/workspace/testpipeline/App-MangerServer'){
+                       
+        //             sh 'cat docker-compose.yaml'
+        //             sh 'ls'
+        //             sh ''' sed -i "s|skinnysyddocker/server-pilot-back:.*|skinnysyddocker/server-pilot-back:${VERSION}|g" docker-compose.yaml '''     
+        //             sh 'cat docker-compose.yaml'
+
+        //         //   }
+
+        //         }
+        //     }
+        // }
+        
+        // stage('update .env') {
+        //     steps {
+        //         script {
+                     
+        //             sh 'cat .env.example'
+                    
+        //             def envContent = readFile('.env.example')
+        //             envContent = envContent.replace('MYSQL_USER=', "MYSQL_USER=${MYSQL_USER}")
+        //             envContent = envContent.replace('MYSQL_PASSWORD=', "MYSQL_PASSWORD=${MYSQL_PASSWORD}")
+        //             envContent = envContent.replace('MYSQL_DBNAME=', "MYSQL_DBNAME=${MYSQL_DBNAME}")
+        //             envContent = envContent.replace('MYSQL_ROOT_PASSWORD=', "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}")
+        //             envContent = envContent.replace('MYSQL_HOST=', "MYSQL_HOST=${MYSQL_HOST}")
+        //             envContent = envContent.replace('SPRING_PROFILES_ACTIVE=', "SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}")
+
+        //             writeFile file: '.env', text: envContent
+        //             sh 'cat .env'
+
+        //         }
+        //     }
+        // }
+
+        // stage('Build and Push Image') {
+        //     steps {
+        //         script {
+                   
+        //             // sh 'docker buildx build --platform linux/amd64,linux/arm64 --push --tag "$DOCKER_ORG/$IMAGE_NAME" .'
+        //         //   dir('/var/lib/jenkins/workspace/testpipeline/App-MangerServer'){
+                       
+        //             sh 'pwd'
+        //             sh 'ls'
+        //             // sh 'docker buildx build --platform linux/amd64 --push --tag "${DOCKER_ORG}/${IMAGE_NAME}" .'
+        //             sh 'docker buildx bake --print'
+        //             sh 'docker buildx bake --push --file docker-compose.yaml'
+
+        //         //   }
+
+        //         }
+        //     }
+        // }
+        // stage('Trigger Update Manifest Pipeline') {
+        //     steps {
+        //         script {
+        //             // Trigger the 'updatemanifest' pipeline and pass the VERSION variable
+        //             build job: 'updatemanifest', parameters: [
+        //                 string(name: 'DOCKERTAG', value: "1.${BUILD_NUMBER}")
+        //             ]
+        //         }
+        //     }
+        // }
+    }
+}
