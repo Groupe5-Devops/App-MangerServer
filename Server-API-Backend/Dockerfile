@@ -18,9 +18,11 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 COPY --from=build /app/target/my-app.jar /app/my-app.jar
+COPY --from=build /app/iamges /app/images
 
 EXPOSE 8080
 # Set the environment variable to activate the 'docker' profile
 ENV SPRING_PROFILES_ACTIVE=docker
 
 CMD ["java", "-jar", "/app/my-app.jar"]
+
