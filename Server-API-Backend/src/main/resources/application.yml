@@ -14,3 +14,33 @@ spring:
 
 server:
   port: 8080
+
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+    beans:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.boot.actuate: INFO
+
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui-custom.html

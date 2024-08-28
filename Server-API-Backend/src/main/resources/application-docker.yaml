@@ -10,3 +10,36 @@ spring:
     url: jdbc:mysql://${MYSQL_HOST}/${MYSQL_DBNAME}?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useSSL=true&allowPublicKeyRetrieval=true
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
+  jackson:
+    serialization:
+      indent-output: true
+
+management:
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+    beans:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.boot.actuate: INFO
+
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui-custom.html

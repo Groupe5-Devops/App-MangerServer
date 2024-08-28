@@ -9,8 +9,9 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./my.cnf:/etc/mysql/conf.d/my.cnf
       - mysql_data:/var/lib/mysql
+      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./my.cnf:/etc/mysql/mysql.conf.d/my.cnf
       - ./certs:/etc/mysql/certs
 
     command:

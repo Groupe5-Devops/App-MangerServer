@@ -9,6 +9,7 @@ COPY src ./src
 
 COPY images /app/images
 
+# RUN mvn clean install
 RUN mvn clean install -DskipTests
 
 # Stage 2: run app
