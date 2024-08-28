@@ -10,7 +10,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./my.cnf:/etc/mysql/mysql.conf.d/my.cnf
       - ./certs:/etc/mysql/certs
 
@@ -50,11 +50,11 @@ services:
   backend: 
     build: &build-back
       context: ./Server-API-Backend
-      dockerfile: Dockerfile.back
-      tags:
-        - docker.io/skinnysyddocker/server-pilot-back:latest
-      cache_from:
-        - docker.io/skinnysyddocker/server-pilot-back:cache
+      dockerfile: Dockerfile
+      # tags:
+      #   - docker.io/skinnysyddocker/server-pilot-back:latest
+      # cache_from:
+      #   - docker.io/skinnysyddocker/server-pilot-back:cache
       # cache_to:
       #   - docker.io/skinnysyddocker/server-pilot-back:cache
 
@@ -82,11 +82,11 @@ services:
   frontend:
     build: &build-front
       context: ./Server-UI-Frontend
-      dockerfile: Dockerfile.front
-      tags:
-        - docker.io/skinnysyddocker/server-pilot-front:latest
-      cache_from:
-        - docker.io/skinnysyddocker/server-pilot-front:cache
+      dockerfile: Dockerfile
+      # tags:
+      #   - docker.io/skinnysyddocker/server-pilot-front:latest
+      # cache_from:
+      #   - docker.io/skinnysyddocker/server-pilot-front:cache
       # cache_to:
       #   - docker.io/skinnysyddocker/server-pilot-front:cache
     ports:
