@@ -18,7 +18,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 COPY --from=build /app/target/my-app.jar /app/my-app.jar
-COPY --from=build /app/iamges /app/images
+COPY --from=build /app/images /app/images
 
 EXPOSE 8080
 # Set the environment variable to activate the 'docker' profile
