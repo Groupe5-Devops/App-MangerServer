@@ -9,7 +9,6 @@ COPY src ./src
 
 COPY images /app/images
 
-# RUN mvn clean install
 RUN mvn clean install -DskipTests
 
 # Stage 2: run app
@@ -19,7 +18,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 COPY --from=build /app/target/my-app.jar /app/my-app.jar
-COPY --from=build /app/images /app/images
+
 EXPOSE 8080
 # Set the environment variable to activate the 'docker' profile
 ENV SPRING_PROFILES_ACTIVE=docker
