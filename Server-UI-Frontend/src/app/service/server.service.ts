@@ -8,7 +8,7 @@ import { Status } from '../enum/status.enum';
 @Injectable({ providedIn: 'root' })
 export class ServerService {
   // private readonly apiUrl = 'http://localhost:8080';
-  private readonly apiUrl = 'http://34.133.5.48:30003';
+  private readonly apiUrl = 'http://34.70.132.118:30003';
 //
 
   constructor(private http: HttpClient) {}
