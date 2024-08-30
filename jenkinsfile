@@ -1,55 +1,48 @@
 pipeline {
     agent any
-    // environment {
-    //     VERSION="1.${BUILD_NUMBER}"
-    //     MYSQL_USER = credentials('mysql_user')
-    //     MYSQL_PASSWORD = credentials('mysql_password')
-    //     MYSQL_DBNAME = credentials('mysql_db')
-    //     MYSQL_HOST = credentials('mysql_host')
-    //     MYSQL_ROOT_PASSWORD = credentials('mysql_root_password')
-    //     SPRING_PROFILES_ACTIVE = credentials('spring_profiles_active')
-    // }
+
+    environment {
+        GCP_PROJECT_ID = 'citric-period-433211-i6'
+        ARTIFACT_REPO_NAME = 'appmanagercr'
+        REGION = 'us-central1' 
+        BACK_DOCKER_IMAGE = "${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPO_NAME}/servermanagerback:1.${env.BUILD_NUMBER}"
+        FRONT_DOCKER_IMAGE = "${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPO_NAME}/servermanagerfront:1.${env.BUILD_NUMBER}"
+        GCP_CREDENTIALS_ID = 'gcrToken' 
+        SLACK_CHANNEL = '#pipeline_succes'
+    }
 
     stages {
-        stage('Clone Repository') {
+        
+        stage('Checkout') {
             steps {
-                script {
-             //        git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
-                     checkout scm
-                }
-            }
-        }
-        stage('output') {
-            steps {
-                script {
-                    echo "Cloning repository into workspace: ${WORKSPACE}" // to locate workspace
-                }
+                // git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
+                checkout scm
             }
         }
         
+        stage('Determine Changes') {
+            steps {
+                script {
+                    // Get the list of changed files in the last commit
+                    def changes = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim()
+                    echo "Changed files:\n${changes}"
+                    env.BUILD_FRONTEND = changes.contains('Server-UI-Frontend/')
+                    env.BUILD_BACKEND = changes.contains('Server-API-Backend/')
+                    echo "BUILD_FRONTEND=${env.BUILD_FRONTEND}"
+                    echo "BUILD_BACKEND=${env.BUILD_BACKEND}"
+                }
+            }
+        }
         
-        // stage('Login to Docker Hub') {
+        // stage('code analyse if backend changed') {
+        //     when {
+        //         expression { env.BUILD_BACKEND == 'true' }
+        //     }
         //     steps {
         //         script {
-        //             withCredentials([string(credentialsId: 'dockerToken', variable: 'DOCKER_TOKEN')]) {
-        //                 sh 'echo "$DOCKER_TOKEN" | docker login --username skinnysyddocker --password-stdin'                    }
-        //         }               
-        //     }
-        // }
-        
-        // stage('Create Buildx Builder') {
-        //     steps {
-        //             // sh 'docker buildx create --use --driver cloud mybuilder'
-        //             // sh 'docker buildx create --use --driver docker localbuilder'
-        //             // sh 'docker buildx use cloud-skinnysyddocker-skinnysydbuilder'
-        //             sh 'echo docker buildx use default'
-        //     }
-        // }
-        
-        // stage('Static code analysis: SonarQube') {
-        //     steps { 
-        //         script {
-        //             dir('App-MangerServer/Server-API-Backend'){
+        //             // Build the Docker image for the backend
+        //             echo "backend"
+        //             dir('Server-API-Backend'){
         //                 withCredentials([string(credentialsId: 'sonarAdmin', variable: 'SONAR_TOKEN')]) { 
         //                     withMaven{
         //                         sh 'mvn clean package sonar:sonar -Dsonar.host.url=http://localhost:9001/ -Dsonar.login=${SONAR_TOKEN}'
@@ -57,87 +50,133 @@ pipeline {
         //                 }
         //             }
         //         }
-        //      }
-        // }
-        
-        // stage('Run Sonarqube') {
-        //     environment {
-        //         scannerHome = tool 'DefaultSonarQubeScanner';
-        //     }
-        //     steps {
-        //         dir('Server-API-Backend'){
-        //             withSonarQubeEnv(credentialsId: 'sonarAdmin', installationName: 'SonarQubeServer') {
-        //                 sh "${scannerHome}/bin/sonar-scanner"
-        //             }
-        //         }
-        //     }
-        // }
-        // stage('change tag') {
-        //     steps {
-        //         script {
-                   
-        //             // sh 'docker buildx build --platform linux/amd64,linux/arm64 --push --tag "$DOCKER_ORG/$IMAGE_NAME" .'
-        //         //   dir('/var/lib/jenkins/workspace/testpipeline/App-MangerServer'){
-                       
-        //             sh 'cat docker-compose.yaml'
-        //             sh 'ls'
-        //             sh ''' sed -i "s|skinnysyddocker/server-pilot-back:.*|skinnysyddocker/server-pilot-back:${VERSION}|g" docker-compose.yaml '''     
-        //             sh 'cat docker-compose.yaml'
-
-        //         //   }
-
-        //         }
         //     }
         // }
         
-        // stage('update .env') {
+        stage('code analyse if frontend changed') {
+            when {
+                expression { env.BUILD_FRONTEND == 'true' }
+            }
+            steps {
+                script {
+                    // Build the Docker image for the backend
+                    echo "frontend"
+                }
+            }
+        }
+        
+        stage('Build back image if backend changed') {
+            when {
+                expression { env.BUILD_BACKEND == 'true' }
+            }
+            steps {
+                script {
+                    // Build the Docker image for the backend
+                    echo "backend"
+                    dir('Server-API-Backend'){
+                        docker.build("${BACK_DOCKER_IMAGE}")
+                    }
+                }
+            }
+        }
+        
+        stage('Build front image if frontend changed') {
+            when {
+                expression { env.BUILD_FRONTEND == 'true' }
+            }
+            steps {
+                script {
+                    // Build the Docker image for the backend
+                    echo "backend"
+                    dir('Server-UI-Frontend'){
+                        docker.build("${FRONT_DOCKER_IMAGE}")
+                    }
+                }
+            }
+        }
+        
+        stage('Push Images') {
+            when {
+                anyOf {
+                    expression { env.BUILD_FRONTEND == 'true' }
+                    expression { env.BUILD_BACKEND == 'true' }
+                }
+            }
+            steps {
+                script {
+                    withCredentials([file(credentialsId: env.GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+                        sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
+                        sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
+                    }
+                    // Push the images to your Docker registry
+                    if (env.BUILD_FRONTEND == 'true') {
+                        // sh 'docker push your-frontend-image:${BUILD_NUMBER}'
+                        docker.image("${FRONT_DOCKER_IMAGE}").push()
+
+                    }
+                    if (env.BUILD_BACKEND == 'true') {
+                        // sh 'docker push your-backend-image:${BUILD_NUMBER}'
+                        docker.image("${BACK_DOCKER_IMAGE}").push()
+
+                    }
+                }
+            }
+        }
+        
+        stage('Trigger Update Manifest Pipeline') {
+            steps {
+                script {
+                    build job: 'scrappingmanifest', parameters: [
+                        string(name: 'DOCKERTAG', value: "1.${BUILD_NUMBER}"),
+                        booleanParam(name: 'BUILD_BACKEND', value: env.BUILD_BACKEND == 'true'),
+                        booleanParam(name: 'BUILD_FRONTEND', value: env.BUILD_FRONTEND == 'true')
+                    ]
+                }
+            }
+        }
+
+
+
+
+        // stage('Build Docker Image') {
         //     steps {
         //         script {
-                     
-        //             sh 'cat .env.example'
-                    
-        //             def envContent = readFile('.env.example')
-        //             envContent = envContent.replace('MYSQL_USER=', "MYSQL_USER=${MYSQL_USER}")
-        //             envContent = envContent.replace('MYSQL_PASSWORD=', "MYSQL_PASSWORD=${MYSQL_PASSWORD}")
-        //             envContent = envContent.replace('MYSQL_DBNAME=', "MYSQL_DBNAME=${MYSQL_DBNAME}")
-        //             envContent = envContent.replace('MYSQL_ROOT_PASSWORD=', "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}")
-        //             envContent = envContent.replace('MYSQL_HOST=', "MYSQL_HOST=${MYSQL_HOST}")
-        //             envContent = envContent.replace('SPRING_PROFILES_ACTIVE=', "SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}")
-
-        //             writeFile file: '.env', text: envContent
-        //             sh 'cat .env'
-
+        //             docker.build("${DOCKER_IMAGE}")
         //         }
         //     }
         // }
 
-        // stage('Build and Push Image') {
+        // stage('Authenticate with GCP') {
         //     steps {
-        //         script {
-                   
-        //             // sh 'docker buildx build --platform linux/amd64,linux/arm64 --push --tag "$DOCKER_ORG/$IMAGE_NAME" .'
-        //         //   dir('/var/lib/jenkins/workspace/testpipeline/App-MangerServer'){
-                       
-        //             sh 'pwd'
-        //             sh 'ls'
-        //             // sh 'docker buildx build --platform linux/amd64 --push --tag "${DOCKER_ORG}/${IMAGE_NAME}" .'
-        //             sh 'docker buildx bake --print'
-        //             sh 'docker buildx bake --push --file docker-compose.yaml'
-
-        //         //   }
-
+        //         withCredentials([file(credentialsId: env.GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+        //             sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
+        //             sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
         //         }
         //     }
         // }
-        // stage('Trigger Update Manifest Pipeline') {
+
+        // stage('Push Docker Image') {
         //     steps {
         //         script {
-        //             // Trigger the 'updatemanifest' pipeline and pass the VERSION variable
-        //             build job: 'updatemanifest', parameters: [
-        //                 string(name: 'DOCKERTAG', value: "1.${BUILD_NUMBER}")
-        //             ]
+        //             docker.image("${DOCKER_IMAGE}").push()
         //         }
         //     }
         // }
+     }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            slackSend channel: SLACK_CHANNEL, color: 'good', message: "Pipeline succeeded: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+        }
+        failure {
+            slackSend channel: SLACK_CHANNEL, color: 'danger', message: "Pipeline failed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+        }
     }
 }
+
+// TAGH=$(gcloud artifacts docker tags list us-central1-docker.pkg.dev/citric-period-433211-i6/appmanagercr/servermanagerback --sort-by=~CREATE_TIME --limit=1 --format="value(TAG)")
+// Listing items under project citric-period-433211-i6, location us-central1, repository appmanagercr.
+
