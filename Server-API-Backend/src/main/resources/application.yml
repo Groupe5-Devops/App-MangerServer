@@ -4,9 +4,9 @@ spring:
       ddl-auto: create
     show-sql: true
   datasource:
-    url: jdbc:mysql://localhost:3306/serverdb?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: spring
-    password: boot
+    url: jdbc:mysql://localhost:3307/serverdb?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 
 
 server:
   port: 8080
