@@ -5,8 +5,8 @@ spring:
     show-sql: true
   datasource:
     url: jdbc:mysql://localhost:3307/serverdb?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 
+    username: spring
+    password: boot
 
 server:
   port: 8080
