@@ -52,3 +52,4 @@ public class ServerApplication {
 }
 
 // The CommandLineRunner() method is annotated with @Bean, which means that Spring will manage the instance returned by this method as a bean.
+//

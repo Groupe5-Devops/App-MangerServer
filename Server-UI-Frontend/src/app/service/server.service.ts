@@ -101,5 +101,6 @@ export class ServerService {
   /*
   public searchServer(keyword : string) : Observable<Array<Server>> {
     return this.http.get<Array<Server>>(this.apiUrl+"/servers/search?keyword="+keyword);
+    //
   }*/
 }
