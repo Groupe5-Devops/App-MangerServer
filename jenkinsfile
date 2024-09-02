@@ -9,21 +9,27 @@ pipeline {
         FRONT_DOCKER_IMAGE = "${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPO_NAME}/servermanagerfront:1.${env.BUILD_NUMBER}"
         GCP_CREDENTIALS_ID = 'gcrToken' 
         SLACK_CHANNEL = '#pipeline_succes'
+        SONAR_URL = 'http://34.136.210.154:9000'
+        COMMIT=''
+        AUTHOR=''
     }
 
     stages {
-        
         stage('Checkout') {
             steps {
-                // git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
-                checkout scm
+                script {
+                    git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
+                    // checkout scm                   
+                    // Capture commit and author details
+                    env.COMMIT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    env.AUTHOR = sh(script: "git show -s --format='%an' HEAD", returnStdout: true).trim()
+                }
             }
         }
         
         stage('Determine Changes') {
             steps {
                 script {
-                    // Get the list of changed files in the last commit
                     def changes = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim()
                     echo "Changed files:\n${changes}"
                     env.BUILD_FRONTEND = changes.contains('Server-UI-Frontend/')
@@ -33,68 +39,163 @@ pipeline {
                 }
             }
         }
-        
-        // stage('code analyse if backend changed') {
-        //     when {
-        //         expression { env.BUILD_BACKEND == 'true' }
-        //     }
-        //     steps {
-        //         script {
-        //             // Build the Docker image for the backend
-        //             echo "backend"
-        //             dir('Server-API-Backend'){
-        //                 withCredentials([string(credentialsId: 'sonarAdmin', variable: 'SONAR_TOKEN')]) { 
-        //                     withMaven{
-        //                         sh 'mvn clean package sonar:sonar -Dsonar.host.url=http://localhost:9001/ -Dsonar.login=${SONAR_TOKEN}'
-        //                     } 
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        
-        stage('code analyse if frontend changed') {
-            when {
-                expression { env.BUILD_FRONTEND == 'true' }
-            }
-            steps {
-                script {
-                    // Build the Docker image for the backend
-                    echo "frontend"
+
+        stage('Parallel Analysis') {
+            parallel {
+                stage('Backend Analysis') {
+                    when {
+                        expression { env.BUILD_BACKEND == 'true' }
+                    }
+                    steps {
+                        script {
+                            echo "Running backend analysis"
+                            // Start a MySQL container for tests
+                            // sh 'docker stop mysql-test'
+                            // sh 'docker rm mysql-test'
+                            sh 'docker run --name mysql-test -e MYSQL_ROOT_PASSWORD=root -e MYSQL_USER=spring -e MYSQL_PASSWORD=boot -e MYSQL_DATABASE=serverdb -p 3307:3306 -d mysql:latest'
+                            dir('Server-API-Backend') {
+                                sh 'pwd'
+                                withMaven(maven: 'M3') {
+                                    sh 'mvn test'
+                                    sh 'ls target/'
+                                }
+                                withCredentials([string(credentialsId: 'sonarToken', variable: 'SONAR_TOKEN')]) { 
+                                    withMaven(maven: 'M3') {
+                                        sh 'mvn clean package sonar:sonar -Dsonar.host.url=${SONAR_URL} -Dsonar.login=${SONAR_TOKEN} -DskipTests'
+                                        sh 'ls target/'
+                                        sh 'mvn checkstyle:checkstyle'
+                                        recordIssues(tools: [checkStyle(pattern: '**/checkstyle-result.xml')])
+
+                                    }
+                                }
+                            }
+                            // Cleanup the MySQL container
+                            sh 'docker stop mysql-test'
+                            sh 'docker rm mysql-test'
+
+                        }
+                    }
                 }
-            }
-        }
-        
-        stage('Build back image if backend changed') {
-            when {
-                expression { env.BUILD_BACKEND == 'true' }
-            }
-            steps {
-                script {
-                    // Build the Docker image for the backend
-                    echo "backend"
-                    dir('Server-API-Backend'){
-                        docker.build("${BACK_DOCKER_IMAGE}")
+
+                stage('Frontend Analysis') {
+                    when {
+                        expression { env.BUILD_FRONTEND == 'true' }
+                    }
+                    environment {
+                        scannerHome = tool 'sonarScanner'
+                    }
+                    steps {
+                        script {
+                            echo "Running frontend analysis"
+                            dir('Server-UI-Frontend') {
+                                withSonarQubeEnv(credentialsId: 'sonarToken', installationName: 'sonar') {
+                                    sh "${scannerHome}/bin/sonar-scanner"
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        
-        stage('Build front image if frontend changed') {
-            when {
-                expression { env.BUILD_FRONTEND == 'true' }
-            }
-            steps {
-                script {
-                    // Build the Docker image for the backend
-                    echo "backend"
-                    dir('Server-UI-Frontend'){
-                        docker.build("${FRONT_DOCKER_IMAGE}")
+
+        stage('Parallel Build') {
+            parallel {
+                stage('Backend Build') {
+                    when {
+                        expression { env.BUILD_BACKEND == 'true' }
+                    }
+                    steps {
+                        script {
+                            echo "Building backend"
+
+                            dir('Server-API-Backend') {
+                                // Build the backend Docker image
+                                docker.build("${BACK_DOCKER_IMAGE}")
+                            }
+                        }
+                    }
+                }
+
+                stage('Frontend Build') {
+                    when {
+                        expression { env.BUILD_FRONTEND == 'true' }
+                    }
+                    steps {
+                        script {
+                            echo "Building frontend"
+                            dir('Server-UI-Frontend') {
+                                // Build the frontend Docker image
+                                docker.build("${FRONT_DOCKER_IMAGE}")
+                            }
+                        }
                     }
                 }
             }
         }
+
+        stage('Trivy Scan') {
+            steps {
+                script {
+                    def imagesToScan = []
+                    if (env.BUILD_BACKEND == 'true') {
+                        imagesToScan << BACK_DOCKER_IMAGE
+                    }
+                    if (env.BUILD_FRONTEND == 'true') {
+                        imagesToScan << FRONT_DOCKER_IMAGE
+                    }
+                    def reportFiles = []
+                    imagesToScan.each { imageName ->
+                        def reportFile = "trivy-report-${imageName.split('/').last()}.txt"
+                        echo "Running Trivy scan on ${imageName}"
+                        sh """
+                            docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy image --exit-code 0 --no-progress ${imageName} > ${reportFile}
+                        """
+                        reportFiles << reportFile
+                    }
+                    // Archive all report files
+                    archiveArtifacts artifacts: reportFiles.join(',')
+                }
+            }
+        }
         
+        stage('Parallel Push') {
+            parallel {
+                
+                stage('Push Backend Image') {
+                    when {
+                        expression { env.BUILD_BACKEND == 'true' }
+                    }
+                    steps {
+                        script {
+                            echo "Pushing backend image"
+                            withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+                                sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
+                                sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
+                            }
+                            docker.image("${BACK_DOCKER_IMAGE}").push()
+                        }
+                    }
+                }
+        
+                stage('Push Frontend Image') {
+                    when {
+                        expression { env.BUILD_FRONTEND == 'true' }
+                    }
+                    steps {
+                        script {
+                            echo "Pushing frontend image"
+                            withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+                                sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
+                                sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
+                            }
+                            docker.image("${FRONT_DOCKER_IMAGE}").push()
+                        }
+                    }
+                }
+            }
+        }
         stage('Push Images') {
             when {
                 anyOf {
@@ -104,25 +205,20 @@ pipeline {
             }
             steps {
                 script {
-                    withCredentials([file(credentialsId: env.GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+                    withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
                         sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
                         sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
                     }
-                    // Push the images to your Docker registry
                     if (env.BUILD_FRONTEND == 'true') {
-                        // sh 'docker push your-frontend-image:${BUILD_NUMBER}'
                         docker.image("${FRONT_DOCKER_IMAGE}").push()
-
                     }
                     if (env.BUILD_BACKEND == 'true') {
-                        // sh 'docker push your-backend-image:${BUILD_NUMBER}'
                         docker.image("${BACK_DOCKER_IMAGE}").push()
-
                     }
                 }
             }
         }
-        
+      
         stage('Trigger Update Manifest Pipeline') {
             steps {
                 script {
@@ -134,49 +230,21 @@ pipeline {
                 }
             }
         }
-
-
-
-
-        // stage('Build Docker Image') {
-        //     steps {
-        //         script {
-        //             docker.build("${DOCKER_IMAGE}")
-        //         }
-        //     }
-        // }
-
-        // stage('Authenticate with GCP') {
-        //     steps {
-        //         withCredentials([file(credentialsId: env.GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
-        //             sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
-        //             sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
-        //         }
-        //     }
-        // }
-
-        // stage('Push Docker Image') {
-        //     steps {
-        //         script {
-        //             docker.image("${DOCKER_IMAGE}").push()
-        //         }
-        //     }
-        // }
-     }
+    }
 
     post {
         always {
             cleanWs()
         }
         success {
-            slackSend channel: SLACK_CHANNEL, color: 'good', message: "Pipeline succeeded: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            script {
+                slackSend channel: SLACK_CHANNEL, color: 'good', message: "Pipeline succeeded:\n *pipeline:* ${env.JOB_NAME} #${env.BUILD_NUMBER} \n*Commit:* ${env.COMMIT}\n*by Author:* ${env.AUTHOR} \n${env.BUILD_URL}"
+            }
         }
         failure {
-            slackSend channel: SLACK_CHANNEL, color: 'danger', message: "Pipeline failed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            script {
+                slackSend channel: SLACK_CHANNEL, color: 'danger', message: "Pipeline failed: ${env.JOB_NAME} ${env.BUILD_NUMBER} \nCommit: ${env.COMMIT} by ${env.AUTHOR} \n${env.BUILD_URL}"
+            }
         }
     }
 }
-
-// TAGH=$(gcloud artifacts docker tags list us-central1-docker.pkg.dev/citric-period-433211-i6/appmanagercr/servermanagerback --sort-by=~CREATE_TIME --limit=1 --format="value(TAG)")
-// Listing items under project citric-period-433211-i6, location us-central1, repository appmanagercr.
-
