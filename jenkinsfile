@@ -225,6 +225,11 @@ pipeline {
         }
       
         stage('Trigger Update Manifest Pipeline') {
+            when {
+                expression {
+                    return env.BUILD_BACKEND == 'true' || env.BUILD_FRONTEND == 'true'
+                }
+            }
             steps {
                 script {
                     build job: 'scrappingmanifest', parameters: [
