@@ -18,8 +18,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
-                    // checkout scm                   
+                    // git branch: 'dev', url: 'https://github.com/Groupe5-Devops/App-MangerServer.git'
+                    checkout scm                   
                     // Capture commit and author details
                     env.COMMIT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     env.AUTHOR = sh(script: "git show -s --format='%an' HEAD", returnStdout: true).trim()
