@@ -134,6 +134,11 @@ pipeline {
         }
 
         stage('Trivy Scan') {
+            when {
+                expression {
+                    return env.BUILD_BACKEND == 'true' || env.BUILD_FRONTEND == 'true'
+                }
+            }
             steps {
                 script {
                     def imagesToScan = []
