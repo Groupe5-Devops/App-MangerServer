@@ -201,28 +201,28 @@ pipeline {
                 }
             }
         }
-        stage('Push Images') {
-            when {
-                anyOf {
-                    expression { env.BUILD_FRONTEND == 'true' }
-                    expression { env.BUILD_BACKEND == 'true' }
-                }
-            }
-            steps {
-                script {
-                    withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
-                        sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
-                        sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
-                    }
-                    if (env.BUILD_FRONTEND == 'true') {
-                        docker.image("${FRONT_DOCKER_IMAGE}").push()
-                    }
-                    if (env.BUILD_BACKEND == 'true') {
-                        docker.image("${BACK_DOCKER_IMAGE}").push()
-                    }
-                }
-            }
-        }
+        // stage('Push Images') {
+        //     when {
+        //         anyOf {
+        //             expression { env.BUILD_FRONTEND == 'true' }
+        //             expression { env.BUILD_BACKEND == 'true' }
+        //         }
+        //     }
+        //     steps {
+        //         script {
+        //             withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+        //                 sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
+        //                 sh 'gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet'
+        //             }
+        //             if (env.BUILD_FRONTEND == 'true') {
+        //                 docker.image("${FRONT_DOCKER_IMAGE}").push()
+        //             }
+        //             if (env.BUILD_BACKEND == 'true') {
+        //                 docker.image("${BACK_DOCKER_IMAGE}").push()
+        //             }
+        //         }
+        //     }
+        // }
       
         stage('Trigger Update Manifest Pipeline') {
             when {

@@ -11,7 +11,7 @@ COPY images /app/images
 
 RUN mvn clean install -DskipTests
 
-# Stage 2: run app
+# Stage 2: run the app 
 
 FROM eclipse-temurin:17-jre-alpine
 
