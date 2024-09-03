@@ -26,7 +26,7 @@ public class ServerApplication {
 	@Bean
 	CommandLineRunner run(ServerRepo serverRepo) {
 		return args -> {
-			serverRepo.save(new Server(null, "8.8.8.8", "Google", "32 GB", "VM-Tooling", "http://34.70.132.118:30003/server/image/server5.png", Status.SERVER_DOWN));
+			serverRepo.save(new Server(null, "8.8.8.8", "Google test", "32 GB", "VM-Tooling", "http://34.70.132.118:30003/server/image/server5.png", Status.SERVER_DOWN));
 			serverRepo.save(new Server(null, "192.168.1.155", "Kali Linux", "16 GB", "Personal PC", "http://34.70.132.118:30003/server/image/server1.png", Status.SERVER_DOWN));
 			serverRepo.save(new Server(null, "192.168.1.154", "Ubuntu Linux", "8 GB", "Dell Tower", "http://34.70.132.118:30003/server/image/server2.png", Status.SERVER_DOWN));
 			serverRepo.save(new Server(null, "192.168.1.153", "Red Hat Enterprise Linux", "16 GB", "Web Server", "http://34.70.132.118:30003/server/image/server3.png", Status.SERVER_DOWN));
