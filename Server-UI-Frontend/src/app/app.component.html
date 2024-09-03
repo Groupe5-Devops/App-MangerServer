@@ -476,7 +476,7 @@
           >
             <i *ngIf="isLoading$ | async" class="fas fa-spinner fa-spin"></i>
             <span *ngIf="isLoading$ | async">Saving...</span>
-            <span *ngIf="!(isLoading$ | async)">Add</span>
+            <span *ngIf="!(isLoading$ | async)" data-cy="submit-button">Add</span>
           </button>
         </div>
       </form>
