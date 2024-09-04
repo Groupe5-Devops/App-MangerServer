@@ -470,6 +470,7 @@
             Cancel
           </button>
           <button
+            data-cy="submit-button"
             type="submit"
             [disabled]="serverForm.invalid || (isLoading$ | async)"
             class="btn btn-success"
