@@ -38,12 +38,13 @@
           </div>
           <div class="col-sm-6" style="text-align: right; white-space: nowrap">
             <button
+              id="print-button"
               (click)="printReport()"
               type="button"
               class="btn btn-light text-light"
               style="margin-left: 15px; background: #5f249f"
             >
-              Print Report <i class="fa fa-download"></i>
+              test <i class="fa fa-download"></i>
             </button>
           </div>
         </div>
@@ -178,6 +179,7 @@
                   </td>
                   <td>
                     <button
+                      id="ddelete"
                       data-cy="confirm-delete"
                       (click)="setServerToDelete(server)"
                       class="btn btn-outline-danger"
@@ -349,6 +351,7 @@
             Cancel
           </button>
           <button
+            data-cy="submit-button"
             type="submit"
             [disabled]="serverForm.invalid || (isLoading$ | async)"
             class="btn btn-success"
