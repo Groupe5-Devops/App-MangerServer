@@ -8,7 +8,7 @@ pipeline {
         BACK_DOCKER_IMAGE = "${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPO_NAME}/servermanagerback:1.${env.BUILD_NUMBER}"
         FRONT_DOCKER_IMAGE = "${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPO_NAME}/servermanagerfront:1.${env.BUILD_NUMBER}"
         GCP_CREDENTIALS_ID = 'gcrToken' 
-        SLACK_CHANNEL = '#pipeline_succes'
+        SLACK_CHANNEL = 'pipeline_succes'
         SONAR_URL = 'http://34.136.210.154:9000'
         COMMIT=''
         AUTHOR=''
