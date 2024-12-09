@@ -5,9 +5,11 @@ FROM maven:3.9.3-eclipse-temurin-20 AS build
 WORKDIR /app
 
 # Copy the pom.xml file and the src directory into the container
-COPY pom.xml .
+
+COPY pom.xml /app/pom.xml
 COPY src ./src
 COPY images /app/images
+
 
 # Build the application using Maven
 RUN mvn clean install -DskipTests
@@ -20,6 +22,7 @@ WORKDIR /app
 
 # Copy the executable JAR file from the build stage to the execution stage
 COPY --from=build /app/target/demo-0.0.1-SNAPSHOT.jar .
+COPY --from=build /app/images /app/images
 
 # Expose the port on which the application will listen
 EXPOSE 8080

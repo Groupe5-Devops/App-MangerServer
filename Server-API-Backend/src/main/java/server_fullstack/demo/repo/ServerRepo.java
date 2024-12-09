@@ -15,7 +15,9 @@ public interface ServerRepo extends JpaRepository<Server, Long>{
     // Find server by the ip address
     Server findByIpAddr(String ipAddr);  // They are unique so we can use ipAddr in here
     Server findByIpAddrAndId(@NotEmpty(message = "IP Address cannot be empty or null") String ipAddr, Long id);
+    @SuppressWarnings("null")
     Optional<Server> findById(Long id);
+    @SuppressWarnings("null")
     Server getById(Long id);
     Server getServerById(Long id);
 }
